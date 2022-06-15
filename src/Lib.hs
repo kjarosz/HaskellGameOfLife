@@ -12,7 +12,11 @@ showWindow = do
 
   win <- Gtk.windowNew Gtk.WindowTypeToplevel
   Gtk.windowSetTitle win (pack "Introduction")
+  Gtk.windowResize win 640 480
   Gtk.onWidgetDestroy win Gtk.mainQuit
-  Gtk.widgetShowAll win
 
+  message <- Gtk.labelNew (Just (pack "Hello"))
+  Gtk.containerAdd win message
+
+  Gtk.widgetShowAll win
   Gtk.main
