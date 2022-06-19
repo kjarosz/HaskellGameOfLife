@@ -22,6 +22,9 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - gi-gtk
+- gi-cairo
+- gi-cairo-render
+- gi-cairo-connector
 - haskell-gi-base
 - text
 

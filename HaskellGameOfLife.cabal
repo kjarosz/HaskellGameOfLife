@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 770e39b8e943bbdb5894d7fbd0e5c259ea750e3b349c4684714396dd18f3f4da
+-- hash: a2d1916bcb482244126a056a449ad2cb631bec43aca385e5714a5bd110e6ed2a
 
 name:           HaskellGameOfLife
 version:        0.1.0.0
@@ -34,6 +34,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , gi-cairo
+    , gi-cairo-connector
+    , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
     , text
@@ -49,6 +52,9 @@ executable HaskellGameOfLife-exe
   build-depends:
       HaskellGameOfLife
     , base >=4.7 && <5
+    , gi-cairo
+    , gi-cairo-connector
+    , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
     , text
@@ -65,6 +71,9 @@ test-suite HaskellGameOfLife-test
   build-depends:
       HaskellGameOfLife
     , base >=4.7 && <5
+    , gi-cairo
+    , gi-cairo-connector
+    , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
     , text
