@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a2d1916bcb482244126a056a449ad2cb631bec43aca385e5714a5bd110e6ed2a
+-- hash: b0fe12ae505b0131e71c8432c3fb6ef31ea023ab12a60c5ce78df0be5625c86b
 
 name:           HaskellGameOfLife
 version:        0.1.0.0
@@ -27,18 +27,21 @@ source-repository head
 
 library
   exposed-modules:
+      GameOfLife
       Lib
   other-modules:
       Paths_HaskellGameOfLife
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
+    , stm
     , text
   default-language: Haskell2010
 
@@ -51,12 +54,14 @@ executable HaskellGameOfLife-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HaskellGameOfLife
+    , array
     , base >=4.7 && <5
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
+    , stm
     , text
   default-language: Haskell2010
 
@@ -70,11 +75,13 @@ test-suite HaskellGameOfLife-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HaskellGameOfLife
+    , array
     , base >=4.7 && <5
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
     , gi-gtk
     , haskell-gi-base
+    , stm
     , text
   default-language: Haskell2010

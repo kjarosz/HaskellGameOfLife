@@ -9,6 +9,8 @@ import qualified GI.Gtk                        as Gtk
 import           GI.Cairo.Render.Connector (renderWithContext, toRender)
 import qualified GI.Cairo.Render as Cairo
 
+import           GameOfLife
+
 contentWidth :: Int32
 contentWidth = 800
 
