@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b0fe12ae505b0131e71c8432c3fb6ef31ea023ab12a60c5ce78df0be5625c86b
+-- hash: f247241266b0b2c7d708961e070224a8edc1bbcadd7652c4b5cd71e0c5bffdd1
 
 name:           HaskellGameOfLife
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      ArrayUtil
       GameOfLife
       Lib
   other-modules:
