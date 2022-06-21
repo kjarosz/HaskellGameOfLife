@@ -26,29 +26,46 @@ tickButtonWidth = 80
 tickButtonHeight :: Int32
 tickButtonHeight = 30
 
+canvasWidth :: Int32 
+canvasWidth = 600
+
+canvasHeight :: Int32 
+canvasHeight = 300
+
 gridWidth :: Int
-gridWidth = 300
+gridWidth = 150
 
 gridHeight :: Int
-gridHeight = 200
+gridHeight = 100
 
-handleTick :: STM.TVar (STM.STM GameOfLife) -> IO ()
+gridMultiplier :: Int 
+gridMultiplier = 4
+
+data GameOfLifeState = GameOfLifeState {
+  redrawFn :: IO (),
+  gameOfLife :: STM.TVar (STM.STM GameOfLife)
+}
+
+handleTick :: GameOfLifeState -> IO ()
 handleTick state = do
+  let gol = gameOfLife state
   STM.atomically $ do
-    gol <- STM.readTVar state
-    newGol <- gol >>= tick
-    STM.writeTVar state $ return newGol
+    stGol <- STM.readTVar gol
+    newGol <- stGol >>= tick
+    STM.writeTVar gol $ return newGol
 
-drawCanvas :: STM.TVar (STM.STM GameOfLife) -> Cairo.Render Bool
-drawCanvas state = do
+drawCanvas :: GameOfLifeState -> Cairo.Render Bool
+drawCanvas gols = do
   clearCanvas
-  drawGrid state
+  drawGrid $ gameOfLife gols
+  Cairo.liftIO $ redrawFn gols
+  return True
 
 clearCanvas :: Cairo.Render Bool
 clearCanvas = do
   Cairo.save
   Cairo.setSourceRGB 255 255 255
-  Cairo.rectangle 0 0 300 200
+  Cairo.rectangle 0 0 (fromIntegral canvasWidth) (fromIntegral canvasHeight)
   Cairo.fill
   Cairo.stroke
   Cairo.restore
@@ -69,10 +86,12 @@ drawGrid state = do
   where draw :: Bool -> ((Int, Int), CellState) -> Cairo.Render Bool
         draw s ((x, y), cellState)
           | cellState == Alive = do
-              Cairo.rectangle (fromIntegral x) (fromIntegral y) 1 1
+              Cairo.rectangle x' y' (fromIntegral gridMultiplier) (fromIntegral gridMultiplier)
               Cairo.fill
               return True
           | otherwise = return True
+          where x' = fromIntegral $ gridMultiplier * x
+                y' = fromIntegral $ gridMultiplier * y
 
 showWindow :: IO ()
 showWindow = do
@@ -90,21 +109,20 @@ showWindow = do
   Gtk.widgetSetSizeRequest tickButton tickButtonWidth tickButtonHeight
   Gtk.fixedPut fixed tickButton 0 0
 
-  redrawButton <- Gtk.buttonNewWithLabel (Text.pack "Redraw")
-  Gtk.widgetSetSizeRequest tickButton tickButtonWidth tickButtonHeight
-  Gtk.fixedPut fixed redrawButton tickButtonWidth 0
-
   drawingArea <- Gtk.drawingAreaNew
   Gtk.widgetSetHexpand drawingArea True
   Gtk.widgetSetVexpand drawingArea True
-  Gtk.widgetSetSizeRequest drawingArea 300 200
+  Gtk.widgetSetSizeRequest drawingArea canvasWidth canvasHeight
   Gtk.fixedPut fixed drawingArea 0 tickButtonHeight
 
   gol <- STM.atomically $ STM.newTVar $ newGameOfLife gridWidth gridHeight
+  let gameOfLifeState = GameOfLifeState { 
+    redrawFn = (Gtk.widgetQueueDrawArea drawingArea 0 0 canvasWidth canvasHeight), 
+    gameOfLife = gol 
+  }
 
-  Gtk.onButtonClicked tickButton (handleTick gol)
-  Gtk.onButtonClicked redrawButton (Gtk.widgetQueueDrawArea drawingArea 0 0 300 200)
-  Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gol)
+  Gtk.onButtonClicked tickButton (handleTick gameOfLifeState)
+  Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gameOfLifeState)
 
   Gtk.widgetShowAll win
   Gtk.main
