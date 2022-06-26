@@ -3,7 +3,21 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: timers-0.2.0.4@sha256:081e81f1f7384795acc4f887cf3c07cc6e7a9c1bf6e65f0f94507f3d2e0585c2,1175
+    pantry-tree:
+      size: 424
+      sha256: 823d891414384524ff8f735d8ab912deff9fc64f97f4560ace392028cbf27bd0
+  original:
+    hackage: timers-0.2.0.4@sha256:081e81f1f7384795acc4f887cf3c07cc6e7a9c1bf6e65f0f94507f3d2e0585c2,1175
+- completed:
+    hackage: suspend-0.2.0.0@sha256:0d98526558b773c3ff792664bc45d7a083a32eedb6206d4101a7570869c75a28,1115
+    pantry-tree:
+      size: 424
+      sha256: 70600cf9fc141612dcfb21573c4ccbec59922fb218b384ed380458cf6b0c67e6
+  original:
+    hackage: suspend-0.2.0.0@sha256:0d98526558b773c3ff792664bc45d7a083a32eedb6206d4101a7570869c75a28,1115
 snapshots:
 - completed:
     size: 619152

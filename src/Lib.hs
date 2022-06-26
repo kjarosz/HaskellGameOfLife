@@ -3,7 +3,10 @@ module Lib
     ) where
 
 import qualified Control.Concurrent.STM as STM
+import           Control.Concurrent.Timer
+import           Control.Concurrent.Suspend
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Data.Array.IArray
 import qualified Data.Text as Text
 import           Data.GI.Base
@@ -20,11 +23,11 @@ contentWidth = 800
 contentHeight :: Int32
 contentHeight = 600
 
-tickButtonWidth :: Int32
-tickButtonWidth = 80
+buttonWidth :: Int32
+buttonWidth = 80
 
-tickButtonHeight :: Int32
-tickButtonHeight = 30
+buttonHeight :: Int32
+buttonHeight = 30
 
 canvasWidth :: Int32 
 canvasWidth = 600
@@ -41,9 +44,14 @@ gridHeight = 100
 gridMultiplier :: Int 
 gridMultiplier = 4
 
+tickTime :: Delay
+tickTime = msDelay 500
+
 data GameOfLifeState = GameOfLifeState {
   redrawFn :: IO (),
-  gameOfLife :: STM.TVar (STM.STM GameOfLife)
+  gameOfLife :: STM.TVar (STM.STM GameOfLife),
+  tickFn :: IO (),
+  timer :: STM.TVar (Maybe (IO TimerIO))
 }
 
 handleTick :: GameOfLifeState -> IO ()
@@ -54,7 +62,20 @@ handleTick state = do
     newGol <- stGol >>= tick
     STM.writeTVar gol $ return newGol
 
-drawCanvas :: GameOfLifeState -> Cairo.Render Bool
+handlePlay :: GameOfLifeState -> IO ()
+handlePlay state = do
+  let timerVar = timer state
+  STM.atomically $ STM.modifyTVar timerVar $ toggleTimer state
+
+toggleTimer :: GameOfLifeState -> Maybe (IO TimerIO) -> Maybe (IO TimerIO)
+toggleTimer state Nothing = do
+  Just (repeatedTimer (tickFn state) tickTime)
+toggleTimer _ (Just timer) = do
+  liftIO $ do 
+    t <- timer
+    stopTimer t
+  Nothing
+
 drawCanvas gols = do
   clearCanvas
   drawGrid $ gameOfLife gols
@@ -106,22 +127,30 @@ showWindow = do
   Gtk.containerAdd win fixed
 
   tickButton <- Gtk.buttonNewWithLabel (Text.pack "Tick")
-  Gtk.widgetSetSizeRequest tickButton tickButtonWidth tickButtonHeight
+  Gtk.widgetSetSizeRequest tickButton buttonWidth buttonHeight
   Gtk.fixedPut fixed tickButton 0 0
+
+  playButton <- Gtk.buttonNewWithLabel (Text.pack "Play")
+  Gtk.widgetSetSizeRequest playButton buttonWidth buttonHeight
+  Gtk.fixedPut fixed playButton buttonWidth 0
 
   drawingArea <- Gtk.drawingAreaNew
   Gtk.widgetSetHexpand drawingArea True
   Gtk.widgetSetVexpand drawingArea True
   Gtk.widgetSetSizeRequest drawingArea canvasWidth canvasHeight
-  Gtk.fixedPut fixed drawingArea 0 tickButtonHeight
+  Gtk.fixedPut fixed drawingArea 0 buttonHeight
 
   gol <- STM.atomically $ STM.newTVar $ newGameOfLife gridWidth gridHeight
+  timer <- STM.atomically $ STM.newTVar Nothing
   let gameOfLifeState = GameOfLifeState { 
     redrawFn = (Gtk.widgetQueueDrawArea drawingArea 0 0 canvasWidth canvasHeight), 
-    gameOfLife = gol 
+    gameOfLife = gol,
+    tickFn = handleTick gameOfLifeState,
+    timer = timer
   }
 
-  Gtk.onButtonClicked tickButton (handleTick gameOfLifeState)
+  Gtk.onButtonClicked tickButton (tickFn gameOfLifeState)
+  Gtk.onButtonClicked playButton (handlePlay gameOfLifeState)
   Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gameOfLifeState)
 
   Gtk.widgetShowAll win

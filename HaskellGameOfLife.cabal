@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f247241266b0b2c7d708961e070224a8edc1bbcadd7652c4b5cd71e0c5bffdd1
+-- hash: 738646f9c0f3c7182ad0d81292e2af3aa17b857e105cd20c062873b2cb5273f2
 
 name:           HaskellGameOfLife
 version:        0.1.0.0
@@ -43,7 +43,10 @@ library
     , gi-gtk
     , haskell-gi-base
     , stm
+    , suspend
     , text
+    , timers
+    , transformers
   default-language: Haskell2010
 
 executable HaskellGameOfLife-exe
@@ -63,7 +66,10 @@ executable HaskellGameOfLife-exe
     , gi-gtk
     , haskell-gi-base
     , stm
+    , suspend
     , text
+    , timers
+    , transformers
   default-language: Haskell2010
 
 test-suite HaskellGameOfLife-test
@@ -84,5 +90,8 @@ test-suite HaskellGameOfLife-test
     , gi-gtk
     , haskell-gi-base
     , stm
+    , suspend
     , text
+    , timers
+    , transformers
   default-language: Haskell2010

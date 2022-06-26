@@ -28,7 +28,10 @@ dependencies:
 - gi-cairo-connector
 - haskell-gi-base
 - stm
+- suspend
 - text
+- timers
+- transformers
 
 library:
   source-dirs: src
