@@ -7,6 +7,7 @@ import           Control.Concurrent.Timer
 import           Control.Concurrent.Suspend
 import           Control.Monad
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Maybe
 import           Data.Array.IArray
 import qualified Data.Text as Text
 import           Data.GI.Base
@@ -51,7 +52,7 @@ data GameOfLifeState = GameOfLifeState {
   redrawFn :: IO (),
   gameOfLife :: STM.TVar (STM.STM GameOfLife),
   tickFn :: IO (),
-  timer :: STM.TVar (Maybe (IO TimerIO))
+  timer :: STM.TVar (IO (Maybe TimerIO))
 }
 
 handleTick :: GameOfLifeState -> IO ()
@@ -65,16 +66,15 @@ handleTick state = do
 handlePlay :: GameOfLifeState -> IO ()
 handlePlay state = do
   let timerVar = timer state
-  STM.atomically $ STM.modifyTVar timerVar $ toggleTimer state
-
-toggleTimer :: GameOfLifeState -> Maybe (IO TimerIO) -> Maybe (IO TimerIO)
-toggleTimer state Nothing = do
-  Just (repeatedTimer (tickFn state) tickTime)
-toggleTimer _ (Just timer) = do
-  liftIO $ do 
-    t <- timer
-    stopTimer t
-  Nothing
+  timer <- STM.readTVarIO timerVar
+  timerVal <- timer
+  case timerVal of 
+    Nothing -> do newTimer <- repeatedTimer (tickFn state) tickTime
+                  let wrappedTimer = return (Just newTimer)
+                  STM.atomically $ STM.writeTVar timerVar wrappedTimer
+    Just t ->  do stopTimer t
+                  let newTimer = return Nothing
+                  STM.atomically $ STM.writeTVar timerVar newTimer
 
 drawCanvas gols = do
   clearCanvas
@@ -140,8 +140,9 @@ showWindow = do
   Gtk.widgetSetSizeRequest drawingArea canvasWidth canvasHeight
   Gtk.fixedPut fixed drawingArea 0 buttonHeight
 
+  let timerVar = return Nothing
   gol <- STM.atomically $ STM.newTVar $ newGameOfLife gridWidth gridHeight
-  timer <- STM.atomically $ STM.newTVar Nothing
+  timer <- STM.atomically $ STM.newTVar timerVar
   let gameOfLifeState = GameOfLifeState { 
     redrawFn = (Gtk.widgetQueueDrawArea drawingArea 0 0 canvasWidth canvasHeight), 
     gameOfLife = gol,
