@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 738646f9c0f3c7182ad0d81292e2af3aa17b857e105cd20c062873b2cb5273f2
+-- hash: 62fa2f4b501886f5d2916915df1f97148272493c565203af291adb3fd08f971b
 
 name:           HaskellGameOfLife
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
+    , gi-gdk
     , gi-gtk
     , haskell-gi-base
     , stm
@@ -63,6 +64,7 @@ executable HaskellGameOfLife-exe
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
+    , gi-gdk
     , gi-gtk
     , haskell-gi-base
     , stm
@@ -87,6 +89,7 @@ test-suite HaskellGameOfLife-test
     , gi-cairo
     , gi-cairo-connector
     , gi-cairo-render
+    , gi-gdk
     , gi-gtk
     , haskell-gi-base
     , stm

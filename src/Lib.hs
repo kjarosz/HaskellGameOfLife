@@ -13,6 +13,7 @@ import qualified Data.Text as Text
 import           Data.GI.Base
 import           GHC.Int
 import qualified GI.Gtk as Gtk
+import qualified GI.Gdk as Gdk
 import           GI.Cairo.Render.Connector (renderWithContext, toRender)
 import qualified GI.Cairo.Render as Cairo
 
@@ -93,6 +94,25 @@ handleDefaultGrid state = do
     STM.writeTVar gol newGol
   redrawFn state
 
+handleButtonPress :: GameOfLifeState -> Gdk.EventButton -> IO Bool
+handleButtonPress state event = do
+  let golVar = gameOfLife state
+  button <- Gdk.getEventButtonButton event
+  buttonX <- Gdk.getEventButtonX event
+  buttonY <- Gdk.getEventButtonY event
+  case button of 
+    1 -> setCell' golVar (floor buttonX) (floor buttonY) Alive
+    3 -> setCell' golVar (floor buttonX) (floor buttonY) Dead
+  redrawFn state
+  return True
+  where toGridCoords c = c `div` gridMultiplier
+        setCell' golVar x y state = do 
+          STM.atomically $ do
+            stGol <- STM.readTVar golVar
+            gol <- stGol
+            let newGol = setCell gol (toGridCoords x, toGridCoords y) state
+            STM.writeTVar golVar newGol
+
 drawCanvas gols = do
   clearCanvas
   drawGrid $ gameOfLife gols
@@ -143,23 +163,24 @@ showWindow = do
   fixed <- Gtk.fixedNew
   Gtk.containerAdd win fixed
 
-  tickButton <- Gtk.buttonNewWithLabel (Text.pack "Tick")
+  tickButton <- Gtk.buttonNewWithLabel $ Text.pack "Tick"
   Gtk.widgetSetSizeRequest tickButton buttonWidth buttonHeight
   Gtk.fixedPut fixed tickButton 0 0
 
-  playButton <- Gtk.buttonNewWithLabel (Text.pack "Play")
+  playButton <- Gtk.buttonNewWithLabel $ Text.pack "Play"
   Gtk.widgetSetSizeRequest playButton buttonWidth buttonHeight
   Gtk.fixedPut fixed playButton buttonWidth 0
 
   clearButton <- Gtk.buttonNewWithLabel $ Text.pack "Clear"
   Gtk.widgetSetSizeRequest clearButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed clearButton (buttonWidth * 2) 0
+  Gtk.fixedPut fixed clearButton (2*buttonWidth) 0
 
   defaultButton <- Gtk.buttonNewWithLabel $ Text.pack "Default"
   Gtk.widgetSetSizeRequest defaultButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed defaultButton (buttonWidth * 3) 0
+  Gtk.fixedPut fixed defaultButton (3*buttonWidth) 0
 
   drawingArea <- Gtk.drawingAreaNew
+  Gtk.widgetAddEvents drawingArea [Gdk.EventMaskButtonPressMask, Gdk.EventMaskPointerMotionMask]
   Gtk.widgetSetHexpand drawingArea True
   Gtk.widgetSetVexpand drawingArea True
   Gtk.widgetSetSizeRequest drawingArea canvasWidth canvasHeight
@@ -179,6 +200,7 @@ showWindow = do
   Gtk.onButtonClicked playButton (handlePlay gameOfLifeState)
   Gtk.onButtonClicked clearButton (handleClearGrid gameOfLifeState)
   Gtk.onButtonClicked defaultButton (handleDefaultGrid gameOfLifeState)
+  Gtk.onWidgetButtonPressEvent drawingArea (handleButtonPress gameOfLifeState)
   Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gameOfLifeState)
 
   Gtk.widgetShowAll win

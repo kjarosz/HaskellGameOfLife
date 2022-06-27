@@ -3,13 +3,14 @@ module GameOfLife
   , GameOfLife(..)
   , newGameOfLife
   , clearGrid
+  , setCell
   , tick
   ) where
 
 import Control.Concurrent.STM
 import Data.Array.IArray
 
-import ArrayUtil(createNewArray, createNewArrayFn, mapWithIndex, getElements)
+import ArrayUtil(createNewArray, createNewArrayFn, mapWithIndex, getElements, setElement)
 
 data CellState = Alive | Dead deriving (Eq, Show, Enum)
 
@@ -36,6 +37,14 @@ clearGrid :: GameOfLife -> STM GameOfLife
 clearGrid gol = do
   let gridVar = grid gol
   writeTVar gridVar $ createNewArray (width gol) (height gol) Dead
+  return gol
+
+setCell :: GameOfLife -> (Int, Int) -> CellState -> STM GameOfLife
+setCell gol index state = do
+  let golVar = grid gol
+  oldGrid <- readTVar golVar
+  let newGrid = setElement oldGrid index state
+  writeTVar golVar newGrid
   return gol
 
 tick :: GameOfLife -> STM GameOfLife
