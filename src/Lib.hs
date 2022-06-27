@@ -31,10 +31,10 @@ buttonHeight :: Int32
 buttonHeight = 30
 
 canvasWidth :: Int32 
-canvasWidth = 600
+canvasWidth = fromIntegral $ gridWidth * gridMultiplier
 
 canvasHeight :: Int32 
-canvasHeight = 300
+canvasHeight = fromIntegral $ gridHeight * gridMultiplier
 
 gridWidth :: Int
 gridWidth = 150
@@ -43,10 +43,10 @@ gridHeight :: Int
 gridHeight = 100
 
 gridMultiplier :: Int 
-gridMultiplier = 4
+gridMultiplier = 6
 
 tickTime :: Delay
-tickTime = msDelay 500
+tickTime = msDelay 60
 
 data GameOfLifeState = GameOfLifeState {
   redrawFn :: IO (),
@@ -75,6 +75,23 @@ handlePlay state = do
     Just t ->  do stopTimer t
                   let newTimer = return Nothing
                   STM.atomically $ STM.writeTVar timerVar newTimer
+
+handleClearGrid :: GameOfLifeState -> IO ()
+handleClearGrid state = do
+  let gol = gameOfLife state
+  STM.atomically $ do
+    stGol <- STM.readTVar gol
+    let newGol = stGol >>= clearGrid 
+    STM.writeTVar gol newGol
+  redrawFn state
+
+handleDefaultGrid :: GameOfLifeState -> IO ()
+handleDefaultGrid state = do
+  let gol = gameOfLife state
+  STM.atomically $ do
+    let newGol = newGameOfLife gridWidth gridHeight
+    STM.writeTVar gol newGol
+  redrawFn state
 
 drawCanvas gols = do
   clearCanvas
@@ -134,6 +151,14 @@ showWindow = do
   Gtk.widgetSetSizeRequest playButton buttonWidth buttonHeight
   Gtk.fixedPut fixed playButton buttonWidth 0
 
+  clearButton <- Gtk.buttonNewWithLabel $ Text.pack "Clear"
+  Gtk.widgetSetSizeRequest clearButton buttonWidth buttonHeight
+  Gtk.fixedPut fixed clearButton (buttonWidth * 2) 0
+
+  defaultButton <- Gtk.buttonNewWithLabel $ Text.pack "Default"
+  Gtk.widgetSetSizeRequest defaultButton buttonWidth buttonHeight
+  Gtk.fixedPut fixed defaultButton (buttonWidth * 3) 0
+
   drawingArea <- Gtk.drawingAreaNew
   Gtk.widgetSetHexpand drawingArea True
   Gtk.widgetSetVexpand drawingArea True
@@ -152,6 +177,8 @@ showWindow = do
 
   Gtk.onButtonClicked tickButton (tickFn gameOfLifeState)
   Gtk.onButtonClicked playButton (handlePlay gameOfLifeState)
+  Gtk.onButtonClicked clearButton (handleClearGrid gameOfLifeState)
+  Gtk.onButtonClicked defaultButton (handleDefaultGrid gameOfLifeState)
   Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gameOfLifeState)
 
   Gtk.widgetShowAll win

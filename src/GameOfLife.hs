@@ -2,6 +2,7 @@ module GameOfLife
   ( CellState(..)
   , GameOfLife(..)
   , newGameOfLife
+  , clearGrid
   , tick
   ) where
 
@@ -30,6 +31,12 @@ newGameOfLife w h = do
   where initializer (x, y)
           | mod (x + y) 3 == 0 = Alive
           | otherwise = Dead
+
+clearGrid :: GameOfLife -> STM GameOfLife
+clearGrid gol = do
+  let gridVar = grid gol
+  writeTVar gridVar $ createNewArray (width gol) (height gol) Dead
+  return gol
 
 tick :: GameOfLife -> STM GameOfLife
 tick gol = do
