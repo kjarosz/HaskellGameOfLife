@@ -11,8 +11,10 @@ import           Control.Monad.Trans.Maybe
 import           Data.Array.IArray
 import qualified Data.Text as Text
 import           Data.GI.Base
+import           Data.GI.Base.Overloading(IsDescendantOf)
 import           GHC.Int
 import qualified GI.Gtk as Gtk
+import           GI.Gtk.Enums
 import qualified GI.Gdk as Gdk
 import           GI.Cairo.Render.Connector (renderWithContext, toRender)
 import qualified GI.Cairo.Render as Cairo
@@ -163,21 +165,13 @@ showWindow = do
   fixed <- Gtk.fixedNew
   Gtk.containerAdd win fixed
 
-  tickButton <- Gtk.buttonNewWithLabel $ Text.pack "Tick"
-  Gtk.widgetSetSizeRequest tickButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed tickButton 0 0
+  buttonBox <- Gtk.buttonBoxNew OrientationHorizontal
+  Gtk.fixedPut fixed buttonBox 0 0
 
-  playButton <- Gtk.buttonNewWithLabel $ Text.pack "Play"
-  Gtk.widgetSetSizeRequest playButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed playButton buttonWidth 0
-
-  clearButton <- Gtk.buttonNewWithLabel $ Text.pack "Clear"
-  Gtk.widgetSetSizeRequest clearButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed clearButton (2*buttonWidth) 0
-
-  defaultButton <- Gtk.buttonNewWithLabel $ Text.pack "Default"
-  Gtk.widgetSetSizeRequest defaultButton buttonWidth buttonHeight
-  Gtk.fixedPut fixed defaultButton (3*buttonWidth) 0
+  tickButton <- makeButton buttonBox "Tick"
+  playButton <- makeButton buttonBox "Play"
+  clearButton <- makeButton buttonBox "Clear"
+  defaultButton <- makeButton buttonBox "Default"
 
   drawingArea <- Gtk.drawingAreaNew
   Gtk.widgetAddEvents drawingArea [Gdk.EventMaskButtonPressMask, Gdk.EventMaskPointerMotionMask]
@@ -205,3 +199,10 @@ showWindow = do
 
   Gtk.widgetShowAll win
   Gtk.main
+
+makeButton :: (Gtk.IsContainer a) => a -> String -> IO Gtk.Button
+makeButton container title = do
+  button <- Gtk.buttonNewWithLabel $ Text.pack title
+  Gtk.widgetSetSizeRequest button buttonWidth buttonHeight
+  Gtk.containerAdd container button
+  return button
