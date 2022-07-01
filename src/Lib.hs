@@ -1,5 +1,7 @@
 module Lib
     ( showWindow
+    , gridWidth
+    , gridHeight
     ) where
 
 import qualified Control.Concurrent.STM as STM
@@ -12,46 +14,17 @@ import           Data.Array.IArray
 import qualified Data.Text as Text
 import           Data.GI.Base
 import           Data.GI.Base.Overloading(IsDescendantOf)
-import           GHC.Int
 import qualified GI.Gtk as Gtk
 import           GI.Gtk.Enums
 import qualified GI.Gdk as Gdk
 import           GI.Cairo.Render.Connector (renderWithContext, toRender)
 import qualified GI.Cairo.Render as Cairo
 
+import           Constants
 import           GameOfLife
 
-contentWidth :: Int32
-contentWidth = 800
-
-contentHeight :: Int32
-contentHeight = 600
-
-buttonWidth :: Int32
-buttonWidth = 80
-
-buttonHeight :: Int32
-buttonHeight = 30
-
-canvasWidth :: Int32 
-canvasWidth = fromIntegral $ gridWidth * gridMultiplier
-
-canvasHeight :: Int32 
-canvasHeight = fromIntegral $ gridHeight * gridMultiplier
-
-gridWidth :: Int
-gridWidth = 150
-
-gridHeight :: Int
-gridHeight = 100
-
-gridMultiplier :: Int 
-gridMultiplier = 6
-
-tickTime :: Delay
-tickTime = msDelay 60
-
 data GameOfLifeState = GameOfLifeState {
+  window :: Gtk.Window,
   redrawFn :: IO (),
   gameOfLife :: STM.TVar (STM.STM GameOfLife),
   tickFn :: IO (),
@@ -95,6 +68,26 @@ handleDefaultGrid state = do
     let newGol = newGameOfLife gridWidth gridHeight
     STM.writeTVar gol newGol
   redrawFn state
+
+handleLoadGrid :: GameOfLifeState -> IO ()
+handleLoadGrid state = do
+    let w = window state
+    openFileDialog w loadGrid'
+    redrawFn state
+  where loadGrid' :: Gtk.FileChooserDialog -> FilePath -> IO Bool
+        loadGrid' dialog filename = do
+          result <- loadGrid filename
+          case result of
+            Left errorMsg -> do putStrLn errorMsg
+                                return False
+            Right grid -> do 
+              STM.atomically $ do
+                let golVar = gameOfLife state
+                golSt <- STM.readTVar golVar
+                gol <- golSt
+                let newGol = setGrid gol grid
+                STM.writeTVar golVar newGol
+              return True
 
 handleButtonPress :: GameOfLifeState -> Gdk.EventButton -> IO Bool
 handleButtonPress state event = do
@@ -172,6 +165,7 @@ showWindow = do
   playButton <- makeButton buttonBox "Play"
   clearButton <- makeButton buttonBox "Clear"
   defaultButton <- makeButton buttonBox "Default"
+  loadButton <- makeButton buttonBox "Load"
 
   drawingArea <- Gtk.drawingAreaNew
   Gtk.widgetAddEvents drawingArea [Gdk.EventMaskButtonPressMask, Gdk.EventMaskPointerMotionMask]
@@ -184,6 +178,7 @@ showWindow = do
   gol <- STM.atomically $ STM.newTVar $ newGameOfLife gridWidth gridHeight
   timer <- STM.atomically $ STM.newTVar timerVar
   let gameOfLifeState = GameOfLifeState { 
+    window = win,
     redrawFn = (Gtk.widgetQueueDrawArea drawingArea 0 0 canvasWidth canvasHeight), 
     gameOfLife = gol,
     tickFn = handleTick gameOfLifeState,
@@ -194,6 +189,7 @@ showWindow = do
   Gtk.onButtonClicked playButton (handlePlay gameOfLifeState)
   Gtk.onButtonClicked clearButton (handleClearGrid gameOfLifeState)
   Gtk.onButtonClicked defaultButton (handleDefaultGrid gameOfLifeState)
+  Gtk.onButtonClicked loadButton (handleLoadGrid gameOfLifeState)
   Gtk.onWidgetButtonPressEvent drawingArea (handleButtonPress gameOfLifeState)
   Gtk.onWidgetDraw drawingArea (renderWithContext $ drawCanvas gameOfLifeState)
 
@@ -206,3 +202,31 @@ makeButton container title = do
   Gtk.widgetSetSizeRequest button buttonWidth buttonHeight
   Gtk.containerAdd container button
   return button
+
+openFileDialog :: Gtk.Window -> ( Gtk.FileChooserDialog -> FilePath -> IO Bool) -> IO ()
+openFileDialog window onSuccess = do
+    dialog <- new Gtk.FileChooserDialog [] 
+    Gtk.windowSetTitle dialog $ Text.pack "Open file"
+    Gtk.windowSetTransientFor dialog $ Just window
+    Gtk.fileChooserSetAction dialog Gtk.FileChooserActionOpen
+    dialogAddButton dialog "gtk-cancel" Gtk.ResponseTypeCancel
+    dialogAddButton dialog "Open" Gtk.ResponseTypeAccept
+    Gtk.widgetShow dialog
+    runDialog dialog
+    Gtk.widgetDestroy dialog
+  where runDialog dialog = do response <- dialogRun dialog
+                              rerun <- handleResponse dialog response
+                              if rerun then runDialog dialog
+                                       else return ()
+        handleResponse dialog Gtk.ResponseTypeAccept = do
+          Just filename <- Gtk.fileChooserGetFilename dialog
+          success <- onSuccess dialog filename
+          return $ not success
+        handleResponse _ _ = return False
+
+dialogRun :: Gtk.IsDialog a => a -> IO Gtk.ResponseType 
+dialogRun dialog = toEnum . fromIntegral <$> Gtk.dialogRun dialog 
+
+dialogAddButton :: Gtk.IsDialog a => a -> String -> Gtk.ResponseType -> IO Gtk.Widget
+dialogAddButton dialog text response = 
+  Gtk.dialogAddButton dialog (Text.pack text) (fromIntegral $ fromEnum response)

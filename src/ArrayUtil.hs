@@ -17,6 +17,9 @@ createNewArray w h e = array ((0,0), (w-1, h-1)) [((i, j), e) | i <- [0..w-1], j
 createNewArrayFn :: (IArray a e) => Int -> Int -> ((Int, Int) -> e) -> a Ix2 e
 createNewArrayFn w h f = array ((0,0), (w-1, h-1)) [((i, j), f (i,j)) | i <- [0..w-1], j <- [0..h-1]]
 
+--createNewArrayFromLists :: Int -> Int -> [e] -> Array Ix2 e
+--createNewArrayFromLists w h xs = array ((0,0), (w-1, h-1))
+
 mapWithIndex :: (IArray a e) => (a Ix2 e -> Ix2 -> e -> e) -> a Ix2 e -> a Ix2 e
 mapWithIndex f a = array (bounds a) [((x, y), f a (x, y) (elem (x,y))) | x <- [wa..wb], y <- [ha..hb]] 
   where (origin, end) = bounds a
