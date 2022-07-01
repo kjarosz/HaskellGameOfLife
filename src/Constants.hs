@@ -23,10 +23,10 @@ canvasHeight :: Int32
 canvasHeight = fromIntegral $ gridHeight * gridMultiplier
 
 gridWidth :: Int
-gridWidth = 36
+gridWidth = 150
 
 gridHeight :: Int
-gridHeight = 9
+gridHeight = 100 
 
 gridMultiplier :: Int 
 gridMultiplier = 6
